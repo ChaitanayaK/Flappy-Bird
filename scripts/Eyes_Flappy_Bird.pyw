@@ -1,31 +1,39 @@
 import pygame
 import random
 import time
+import keyboard as kb
+import cv2
 
 pygame.init()
+
+# Load the pre-trained eyes classifier
+body_cascade = cv2.CascadeClassifier(
+    'scripts/haarcascade_eye.xml')
+
+cap = cv2.VideoCapture(0)
 
 s_width, s_height = 500, 650
 
 win = pygame.display.set_mode((s_width, s_height))
 
 bird_surf = pygame.image.load(
-    'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/Bird1.png')
+    'assets/Bird1.png')
 pygame.display.set_icon(bird_surf)
 
 pygame.display.set_caption('Flappy Bird Game')
 
 clock = pygame.time.Clock()
 
-minecraft = 'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/Minecraft.ttf'
+minecraft = 'assets/Minecraft.ttf'
 
 text_color = (76, 42, 58)
 
-bird_jump_file = 'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/bird_jump.wav'
+bird_jump_file = 'assets/bird_jump.wav'
 
-bird_crash_file = 'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/bird_crash.wav'
+bird_crash_file = 'assets/bird_crash.wav'
 
 bird_surf = pygame.image.load(
-    'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/Bird1.png')
+    'assets/Bird1.png')
 bird_surf = pygame.transform.scale(bird_surf, (50, 40)).convert_alpha()
 initial_bird_pos = (100, 280)
 bird_rect = bird_surf.get_rect(topleft=initial_bird_pos)
@@ -33,11 +41,11 @@ bird_rect = bird_surf.get_rect(topleft=initial_bird_pos)
 bird_loss = pygame.transform.scale(bird_surf, (150, 120)).convert_alpha()
 
 bird2_surf = pygame.image.load(
-    'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/Bird2.png')
+    'assets/Bird2.png')
 bird2_surf = pygame.transform.scale(bird2_surf, (50, 40)).convert_alpha()
 
 cloud = pygame.image.load(
-    'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/cloud.png')
+    'assets/cloud.png')
 cloud = pygame.transform.scale(cloud, (250, 200)).convert_alpha()
 cloud_rect = cloud.get_rect(topleft=(s_width, 30))
 cloud1_rect = cloud.get_rect(topleft=(s_width+700, 120))
@@ -51,15 +59,15 @@ F2 = pygame.font.Font(minecraft, 35)
 
 
 # Background
-background_file = 'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/background.jpg'
-background_night_file = 'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/background_night.jpg'
+background_file = 'assets/background.jpg'
+background_night_file = 'assets/background_night.jpg'
 background = pygame.image.load(background_file)
 background = pygame.transform.scale(
     background, (s_width, s_height)).convert_alpha()
 background_rect1 = background.get_rect(topleft=(0, 0))
 background_rect2 = background.get_rect(topleft=(s_width, 0))
 
-pillar_file = 'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/pillar.png'
+pillar_file = 'assets/pillar.png'
 pillar = pygame.image.load(pillar_file)
 pillar2 = pygame.transform.scale(pillar, (110, 500))
 pillar1 = pygame.transform.rotate(pillar2, 180)
@@ -67,7 +75,7 @@ pillar1 = pygame.transform.rotate(pillar2, 180)
 rod_up_rect = pillar1.get_rect(bottomleft=(s_width, 250))
 rod_down_rect = pillar2.get_rect(topleft=(s_width, 550))
 
-flappy_bird_text_file = 'C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/flappybird_text.png'
+flappy_bird_text_file = 'assets/flappybird_text.png'
 logo_text = pygame.image.load(flappy_bird_text_file)
 logo_text = pygame.transform.scale(logo_text, (450, 112))
 
@@ -170,15 +178,16 @@ def Score():
 
 
 def Highscore():
-    file = open("C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/highscore_txt.txt", "r")
+    file = open(
+        "data/highscore.txt", "r")
     if int(max(score_list)) > int(file.read()):
         file = open(
-            "C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/highscore_txt.txt", "w")
+            "data/highscore.txt", "r")
         file.write(str(max(score_list)))
     file.close()
 
     file = open(
-        "C:/Users/Admin/OneDrive/Documents/Pythoncodes/PROJECTS/Project_Flappy_Bird/highscore_txt.txt", "r")
+        "data/highscore.txt", "r")
 
     your_score = 'Your Score: ' + max(score_list)
 
@@ -213,8 +222,13 @@ def collision():
 i = 0
 highscore_list = []
 while True:
+    # Read the frame from the webcam
+    ret, frame = cap.read()
+
+    # Convert the frame to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     i += 1
-    clock.tick(45)
+    clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -234,8 +248,23 @@ while True:
     win.fill((0, 0, 0))
     Background()
 
+    # Detect the upper bodies in the frame
+    bodies = body_cascade.detectMultiScale(gray, 1.3, 5)
+
+    # Draw rectangles around the upper bodies
+    for (x, y, w, h) in bodies:
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+
+    # Display the frame with the rectangles around the upper bodies
+    cv2.imshow('Detecting Your Eyes', frame)
+
     # Start Screen
     if play == False and lost == False:
+        if len(bodies) == 0:
+            kb.press('space')
+
+        elif len(bodies) > 0:
+            kb.release('space')
 
         win.blit(logo_text, (25, 75))
         win.blit(bird_loss, (160, 250))
@@ -244,6 +273,12 @@ while True:
 
     # For Playing The Game
     elif lost == False and play == True:
+
+        if len(bodies) == 0:
+            kb.press('space')
+
+        elif len(bodies) > 0:
+            kb.release('space')
 
         # Clouds()
         rods()
